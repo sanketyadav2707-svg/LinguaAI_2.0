@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, CSSProperties } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion'; // ADD THIS LINE
 import {
   MessageCircle, X, Send, ArrowRight, Check, Zap, Mic, BookOpen,
   Home, Map, Gamepad2, Settings, ChevronRight, Star, Users, Globe,
   Volume2, Brain, Briefcase, Coffee, Code2, LogOut, Bell, Search,
-  Menu, Sparkles,
+  Menu, Sparkles, ShieldCheck
 } from 'lucide-react';
-
 // ─── Brand palette ────────────────────────────────────────────────────────────
 const INDIGO = '#6610f2';
 const ORANGE = '#fd7e14';
@@ -161,36 +161,60 @@ function useGlobalStyles() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GLASS BACKGROUND
+// UPGRADED GLASS BACKGROUND (Scroll-Linked)
 // ═══════════════════════════════════════════════════════════════════════════════
-function GlassBackground() {
-  const anims = ['float-a', 'float-b', 'float-c'];
+function GlassBackground({ yOffset }: { yOffset: any }) {
+  // Select 8 premium characters for the background
+  const activeLetters = GLASS_LETTERS.slice(0, 8);
+  
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
-      {GLASS_LETTERS.map((l, i) => (
-        <div
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }} aria-hidden="true">
+      {activeLetters.map((l, i) => (
+        <motion.div
           key={i}
-          className={anims[i % 3]}
           style={{
             position: 'absolute',
             left: `${l.x}%`,
             top: `${l.y}%`,
-            fontSize: l.size,
-            fontWeight: 900,
-            lineHeight: 1,
-            userSelect: 'none',
-            '--dur': `${l.dur}s`,
-            animationDelay: `${(i * 1.3) % 4}s`,
-            background: i % 2 === 0
-              ? `linear-gradient(135deg, rgba(102,16,242,0.22), rgba(253,126,20,0.14))`
-              : `linear-gradient(135deg, rgba(253,126,20,0.18), rgba(102,16,242,0.12))`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          } as CSSProperties}
+            y: yOffset, // This connects the letter to the mouse scroll!
+          }}
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.5, delay: i * 0.1 }}
         >
-          {l.char}
-        </div>
+          <motion.div
+            animate={{ 
+              y: [0, l.ty, 0], 
+              x: [0, l.tx, 0],
+              rotate: [0, i % 2 === 0 ? 5 : -5, 0]
+            }}
+            transition={{ duration: l.dur, repeat: Infinity, ease: "easeInOut" }}
+            style={{
+              fontSize: l.size,
+              fontWeight: 900,
+              lineHeight: 1,
+              userSelect: 'none',
+              padding: '20px',
+              borderRadius: '32px',
+              background: 'rgba(255, 255, 255, 0.15)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              boxShadow: '0 8px 32px rgba(31, 38, 135, 0.08)',
+            }}
+          >
+            <span style={{
+              background: i % 2 === 0 
+                ? `linear-gradient(135deg, ${INDIGO}99, ${ORANGE}99)` 
+                : `linear-gradient(135deg, ${ORANGE}99, ${INDIGO}99)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              {l.char}
+            </span>
+          </motion.div>
+        </motion.div>
       ))}
       <div style={{ position: 'absolute', top: '25%', left: '25%', width: 500, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${INDIGO}, transparent)`, opacity: 0.05, transform: 'translate(-50%,-50%)' }} />
       <div style={{ position: 'absolute', bottom: '20%', right: '20%', width: 400, height: 400, borderRadius: '50%', background: `radial-gradient(circle, ${ORANGE}, transparent)`, opacity: 0.04, transform: 'translate(50%,50%)' }} />
@@ -402,7 +426,7 @@ function PricingCard({ plan, index, onGetStarted }: { plan: typeof PLANS[0]; ind
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PAGE 1 — LANDING
+// PAGE 1 — UPGRADED LANDING WITH EXTENDED FEATURES
 // ═══════════════════════════════════════════════════════════════════════════════
 function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   const v0 = useFadeIn(0);
@@ -411,9 +435,15 @@ function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   const v3 = useFadeIn(400);
   const v4 = useFadeIn(640);
 
+  // Track scroll position to move the background letters
+  const { scrollYProgress } = useScroll();
+  const yOffset = useTransform(scrollYProgress, [0, 1], [0, -600]); 
+
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: 'white', overflowX: 'hidden' }}>
-      <GlassBackground />
+      
+      {/* Pass the scroll tracking to the background */}
+      <GlassBackground yOffset={yOffset} />
 
       {/* Navbar */}
       <nav style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 64px', flexWrap: 'wrap', gap: 12 }}>
@@ -424,6 +454,7 @@ function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
           <span style={{ fontWeight: 900, fontSize: 20, color: '#111827' }}>Lingua<span style={{ color: INDIGO }}>AI</span></span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 32, fontSize: 14, color: '#6b7280', fontWeight: 500 }}>
+          <a href="#how-it-works" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.15s' }}>How it Works</a>
           <a href="#features" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.15s' }}>Features</a>
           <a href="#pricing" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.15s' }}>Pricing</a>
         </div>
@@ -433,97 +464,90 @@ function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
       </nav>
 
       {/* Hero */}
-      <section style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '64px 24px 100px' }}>
-        <div style={{ ...fadeStyle(v0, 0), display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid #f1f5f9', borderRadius: 9999, padding: '8px 16px', fontSize: 12, fontWeight: 600, color: '#4b5563', marginBottom: 28, boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+      <section style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '100px 24px 140px' }}>
+        <div style={{ ...fadeStyle(v0, 0), display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid #f1f5f9', borderRadius: 9999, padding: '8px 16px', fontSize: 12, fontWeight: 600, color: '#4b5563', marginBottom: 28, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <span className="pulse-dot" style={{ width: 6, height: 6, borderRadius: 9999, background: ORANGE, display: 'inline-block' }} />
-          Powered by next-gen AI · Now in Beta
+          Powered by next-gen AI · Version 2.0
         </div>
 
-        <h1 style={{ ...fadeStyle(v1, 0, 28), fontSize: 'clamp(40px, 7vw, 72px)', fontWeight: 900, color: '#111827', lineHeight: 1.08, maxWidth: 800, margin: '0 0 20px' }}>
-          Learn any language<br />
-          <span style={{ background: `linear-gradient(135deg, ${INDIGO} 30%, ${ORANGE})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            the smart way.
+        <h1 style={{ ...fadeStyle(v1, 0, 28), fontSize: 'clamp(40px, 7vw, 76px)', fontWeight: 900, color: '#111827', lineHeight: 1.05, maxWidth: 850, margin: '0 0 24px' }}>
+          Stop memorizing.<br />
+          <span style={{ background: `linear-gradient(135deg, ${INDIGO} 20%, ${ORANGE})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            Start speaking.
           </span>
         </h1>
 
-        <p style={{ ...fadeStyle(v2), fontSize: 18, color: '#6b7280', maxWidth: 520, marginBottom: 36, lineHeight: 1.7 }}>
-          Conversational AI that adapts to your pace, your goals, and your life — voice practice, gamified lessons, and a personal roadmap. All in one place.
+        <p style={{ ...fadeStyle(v2), fontSize: 20, color: '#6b7280', maxWidth: 600, marginBottom: 40, lineHeight: 1.6 }}>
+          Immerse yourself in real-time AI voice conversations, adaptive roadmaps, and gamified challenges. The ultimate one-stop solution for fluency.
         </p>
 
-        <div style={{ ...fadeStyle(v3), display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center', alignItems: 'center' }}>
-          <button onClick={onGetStarted} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 32px', borderRadius: 18, fontSize: 16, fontWeight: 700, boxShadow: `0 12px 40px rgba(102,16,242,0.28)`, fontFamily: 'inherit' }}>
-            Get Started — It's Free <ArrowRight size={17} />
+        <div style={{ ...fadeStyle(v3), display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', alignItems: 'center' }}>
+          <button onClick={onGetStarted} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 36px', borderRadius: 9999, fontSize: 18, fontWeight: 700, boxShadow: `0 12px 40px rgba(102,16,242,0.3)`, fontFamily: 'inherit' }}>
+            Start Learning Free <ArrowRight size={20} />
           </button>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 24px', borderRadius: 18, fontSize: 16, fontWeight: 600, background: 'white', border: '1px solid #e5e7eb', color: '#374151', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}>
-            <Mic size={15} color={ORANGE} /> Hear a demo
-          </button>
-        </div>
-
-        <div style={{ ...fadeStyle(v4), display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 20, marginTop: 48, justifyContent: 'center' }}>
-          <div style={{ display: 'flex' }}>
-            {[INDIGO, ORANGE, '#10b981', '#ef4444'].map((c, i) => (
-              <div key={i} style={{ width: 32, height: 32, borderRadius: 9999, border: '2px solid white', background: c, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white', marginLeft: i > 0 ? -8 : 0 }}>
-                {String.fromCharCode(65 + i)}
-              </div>
-            ))}
-          </div>
-          <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}><strong style={{ color: '#111827' }}>50,000+</strong> learners already fluent</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            {[...Array(5)].map((_, i) => <Star key={i} size={13} fill={ORANGE} color={ORANGE} />)}
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginLeft: 4 }}>4.9</span>
-          </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" style={{ position: 'relative', zIndex: 10, padding: '64px 24px', background: 'rgba(248,250,252,0.85)', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
-          {[
-            { icon: Mic,   label: 'Voice AI',        desc: 'Real-time pronunciation coaching with neural TTS.', color: INDIGO    },
-            { icon: Brain, label: 'Adaptive Engine',  desc: 'Lessons that evolve with your memory curve.',     color: ORANGE    },
-            { icon: Map,   label: 'Personal Roadmap', desc: 'AI-curated path from zero to fluency.',           color: '#10b981' },
-          ].map((f, i) => {
-            const { ref, inView } = useInView();
-            return (
-              <div key={f.label} ref={ref} style={{ ...fadeStyle(inView, i * 100), background: 'white', borderRadius: 20, padding: 24, border: '1px solid #f1f5f9', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <div style={{ width: 44, height: 44, borderRadius: 16, background: `${f.color}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                  <f.icon size={20} color={f.color} />
+      {/* NEW: Extended Features Section (How it works) */}
+      <section id="how-it-works" style={{ position: 'relative', zIndex: 10, padding: '100px 24px', background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(20px)', borderTop: '1px solid #f1f5f9' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          
+          {(() => { const { ref, inView } = useInView(); return (
+            <div ref={ref} style={{ ...fadeStyle(inView), textAlign: 'center', marginBottom: 60 }}>
+              <h2 style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 900, color: '#111827', margin: 0 }}>
+                A completely different <br/> learning experience.
+              </h2>
+            </div>
+          ); })()}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 32 }}>
+            {[
+              { icon: Map, title: '1. Build Your Roadmap', desc: 'Tell the AI your exact goals. Whether it is an IT interview or traveling to Paris, we generate a day-by-day path.', color: INDIGO },
+              { icon: Mic, title: '2. Live Voice Immersion', desc: 'Engage in real-time, spontaneous voice chats. Order coffee, negotiate a salary, or survive a zombie apocalypse in your target language.', color: ORANGE },
+              { icon: ShieldCheck, title: '3. Zero Human Judgment', desc: 'Make mistakes freely. Our AI gently corrects your grammar and pronunciation without the anxiety of a classroom.', color: '#10b981' },
+            ].map((f, i) => {
+              const { ref, inView } = useInView();
+              return (
+                <div key={f.title} ref={ref} style={{ ...fadeStyle(inView, i * 150), background: 'white', borderRadius: 24, padding: 32, border: '1px solid #f1f5f9', boxShadow: '0 12px 32px rgba(0,0,0,0.03)' }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 16, background: `${f.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+                    <f.icon size={28} color={f.color} />
+                  </div>
+                  <h3 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: '0 0 12px' }}>{f.title}</h3>
+                  <p style={{ fontSize: 16, color: '#6b7280', lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
                 </div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: '0 0 8px' }}>{f.label}</h3>
-                <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" style={{ position: 'relative', zIndex: 10, padding: '88px 24px' }}>
+      <section id="pricing" style={{ position: 'relative', zIndex: 10, padding: '100px 24px', background: 'white' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           {(() => { const { ref, inView } = useInView(); return (
             <div ref={ref} style={{ ...fadeStyle(inView), textAlign: 'center', marginBottom: 56 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: '#9ca3af', textTransform: 'uppercase', margin: '0 0 10px' }}>Transparent Pricing</p>
-              <h2 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 900, color: '#111827', margin: 0 }}>
+              <p style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', color: INDIGO, textTransform: 'uppercase', margin: '0 0 12px' }}>Transparent Pricing</p>
+              <h2 style={{ fontSize: 'clamp(36px, 5vw, 56px)', fontWeight: 900, color: '#111827', margin: 0 }}>
                 Simple, honest{' '}
                 <span style={{ background: `linear-gradient(135deg, ${INDIGO}, ${ORANGE})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>plans.</span>
               </h2>
             </div>
           ); })()}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, alignItems: 'center' }}>
             {PLANS.map((plan, i) => <PricingCard key={plan.name} plan={plan} index={i} onGetStarted={onGetStarted} />)}
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ position: 'relative', zIndex: 10, borderTop: '1px solid #f1f5f9', padding: '36px 48px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, fontSize: 13, color: '#9ca3af' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 8, background: `linear-gradient(135deg, ${INDIGO}, ${ORANGE})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={11} color="white" /></div>
-          <span style={{ fontWeight: 700, color: '#374151' }}>LinguaAI</span>
+      <footer style={{ position: 'relative', zIndex: 10, borderTop: '1px solid #f1f5f9', padding: '40px 64px', background: 'white', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, fontSize: 14, color: '#9ca3af' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${INDIGO}, ${ORANGE})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={14} color="white" /></div>
+          <span style={{ fontWeight: 800, color: '#374151', fontSize: 16 }}>LinguaAI</span>
         </div>
-        <p style={{ margin: 0 }}>© 2025 LinguaAI Technologies. All rights reserved.</p>
-        <div style={{ display: 'flex', gap: 20 }}>
-          {['Privacy', 'Terms', 'Contact'].map(l => <a key={l} href="#" style={{ color: 'inherit', textDecoration: 'none' }}>{l}</a>)}
+        <p style={{ margin: 0 }}>© 2026 LinguaAI Technologies. All rights reserved.</p>
+        <div style={{ display: 'flex', gap: 24, fontWeight: 500 }}>
+          {['Privacy', 'Terms', 'Contact'].map(l => <a key={l} href="#" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }}>{l}</a>)}
         </div>
       </footer>
     </div>
